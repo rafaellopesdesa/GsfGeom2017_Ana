@@ -1,7 +1,7 @@
-import ROOT as rt
-import CMS_lumi, tdrstyle
-import array
+from ROOT import *
+from array import *
 
+import CMS_lumi, tdrstyle
 iPos    = 11
 iPeriod = 0
 
@@ -26,7 +26,7 @@ def printHist(h,legend = None):
     B = 0.12*H_ref 
     L = 0.12*W_ref
     R = 0.04*W_ref
-    canvas = rt.TCanvas("c2","c2",50,50,W,H)
+    canvas = TCanvas("c2","c2",50,50,W,H)
     canvas.SetFillColor(0)
     canvas.SetBorderMode(0)
     canvas.SetFrameFillStyle(0)
@@ -56,8 +56,13 @@ def analyzeSeeds(chain):
                 'tripletElectronSeeds',
                 'pixelPairElectronSeeds',
                 'stripPairElectronSeeds']
-    seedHists = [rt.TH1D(x,x,30,5.,65.) for x in seedName]        
-    seedHists.append(rt.TH1D('total','total',30,5.,65.))
+    binning = [0.5]
+    for i in xrange(1,50):
+        binning.append(TMath.Power(10,TMath.Log10(5)-1+i*(TMath.Log10(2)+2.-TMath.Log10(5)+1.)/50))
+    seedHists = []
+    for x in seedName:
+        seedHists.append(TH1D(x,x,len(binning)-1,array('d',binning)))
+    seedHists.append(TH1D('total','total',len(binning)-1,array('d',binning)))
     nentries = chain.GetEntries()
     for ientry, events in enumerate(chain):
         if ientry % 1000 == 0:
@@ -69,25 +74,25 @@ def analyzeSeeds(chain):
                 if usedSimIdx.count(simIdxs[0]) > 0:
                     continue
                 if events.see_ecalDriven[seedIdx]:                                       # ECAL-driven
-                    if rt.TMath.Abs(events.sim_pdgId[simIdxs[0]]) == 11:                 # matched to electrons
+                    if TMath.Abs(events.sim_pdgId[simIdxs[0]]) == 11:                 # matched to electrons
                         usedSimIdx.append(simIdxs[0])
                         algo = events.see_algoOriginal[seedIdx]
-                        simVec = rt.Math.PxPyPzMVector(events.sim_px[simIdxs[0]],
+                        simVec = Math.PxPyPzMVector(events.sim_px[simIdxs[0]],
                                                        events.sim_py[simIdxs[0]],
                                                        events.sim_pz[simIdxs[0]],
                                                        0.000511)
                         seedHists[algo].Fill(simVec.pt())
                         seedHists[-1].Fill(simVec.pt())
-    stack = rt.THStack('seeds', 'Electron seeds')
-    colors = [rt.kViolet, rt.kBlue, rt.kCyan, rt.kGreen, rt.kYellow, rt.kOrange, rt.kRed]    
+    stack = THStack('seeds', 'Electron seeds')
+    colors = [kViolet, kBlue, kCyan, kGreen, kYellow, kOrange, kRed]    
 
-    legend = rt.TLegend(0.55, 0.7, 0.85, 0.90)
+    legend = TLegend(0.55, 0.65, 0.8, 0.90)
     legend.SetBorderSize(0)
     for ih, hist in enumerate(seedHists[:-1]):
         legend.AddEntry(hist, '%s [%.2f%%]' % (seedName[ih], hist.Integral()/seedHists[-1].Integral()), 'f')
 
     for color, hist in zip(colors, seedHists[:-1]):
-        hist.SetLineColor(rt.kBlack)
+        hist.SetLineColor(kBlack)
         hist.SetFillColor(color)
         hist.Divide(seedHists[-1])
         stack.Add(hist)
@@ -99,12 +104,14 @@ def analyzeSeeds(chain):
                     
 if __name__ == '__main__':
 
-    inputFiles = ['/eos/uscms/store/user/rclsa/DYJetsToLL_M-50_TuneCUETP8M1_13TeV-madgraphMLM-pythia8/crab_DYJetsToLL_M-50_TuneCUETP8M1_13TeV-madgraphMLM-pythia8_trackingNtuple/170221_214220/0000/trackingNtuple_%d.root' % x for x in xrange(1,100)]
-    inputChain = rt.TChain('trackingNtuple/tree')
+    inputFiles = ['/eos/uscms/store/user/rclsa/GsfTrackingNtuple/ValTrkGSF_1_0/DYJetsToLL_M-50_TuneCUETP8M1_13TeV-madgraphMLM-pythia8/trackingNtuple_%d.root' % x for x in xrange(1,786)]
+    inputChain = TChain('trackingNtuple/tree')
     for inputFile in inputFiles:
         inputChain.Add(inputFile)
 
-    stack, legend = analyzeSeeds(inputChain)
     setupGraphics()
-    canvas = printHist(stack, legend)
-    canvas.Print('test.png')
+
+    stackSeeds, legendSeeds = analyzeSeeds(inputChain)
+    canvasSeeds = printHist(stack, legend)
+    canvasSeeds.SetLogx(1)
+    canvasSeeds.Print('ECALdrivenSeeds.png')
