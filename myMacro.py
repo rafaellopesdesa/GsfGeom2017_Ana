@@ -1,12 +1,10 @@
-import sys
-
 from ROOT import *
 gROOT.SetBatch(True)
-
 from array import *
-
-import CMS_lumi, tdrstyle
 import numpy as np
+
+import sys
+import CMS_lumi, tdrstyle
 
 iPos    = 0
 iPeriod = 0
@@ -62,6 +60,11 @@ class EffHistograms:
             hist.Divide(self.allHist)
             stack.Add(hist, "hist")
         return stack
+
+def getBin(val, cats):
+    cat = int(np.digitize([val],cats)[0])-1
+    if cat > len(cats)-2: cat = len(cats)-2
+    return cat
 
 # common configuration for texts
 def setupGraphics():
@@ -164,8 +167,8 @@ def analyzeSeeds(chain):
                                                 events.sim_py[simIdxs[0]],
                                                 events.sim_pz[simIdxs[0]],
                                                 0.000511)
-                    etaCategory = int(np.digitize([TMath.Abs(simVec.eta())],etaCategories)[0])-1
-                    if etaCategory > 4: etaCategory = 4
+                    
+                    etaCategory = getBin(TMath.Abs(simVec.eta()),etaCategories)
                     if events.see_ecalDriven[seedIdx]:                               
                         ptALLSeedHist.Fill(simVec.pt(), simVec.eta(), 0)
                         ptALLSeedHistEtaCategories[etaCategory].Fill(simVec.pt(), simVec.eta(), 0)
@@ -238,6 +241,7 @@ def analyzeECALdrivenEfficiency(chain):
         for trkIdxs, shareFracs, px, py, pz, pdgId, vtxIdx in zip(events.sim_trkIdx, events.sim_shareFrac, events.sim_px, events.sim_py, events.sim_pz, events.sim_pdgId, events.sim_parentVtxIdx):
             if TMath.Abs(pdgId) == 11 and len(events.simvtx_sourceSimIdx[vtxIdx]) == 0:             # an electron that comes from the pp interaction
                 simVec = Math.PxPyPzMVector(px, py, pz, 0.000511)
+                if TMath.Abs(simVec.eta()) > 2.5: continue
                 wgt = 0.
                 algo = 0
                 if len(trkIdxs) > 0:
@@ -269,6 +273,16 @@ if __name__ == '__main__':
         inputChain.Add(inputFile)
 
     setupGraphics()
+
+    ptECALdrivenEffStack, ptECALdrivenEffLegend, etaECALdrivenEffStack, etaECALdrivenEffLegend = analyzeECALdrivenEfficiency(inputChain)
+    ptECALdrivenEffCanvas = printHist(ptECALdrivenEffStack, ptECALdrivenEffLegend)
+    ptECALdrivenEffCanvas.SetLogx(1)
+    ptECALdrivenEffCanvas.Update()
+    ptECALdrivenEffCanvas.Print('ptECALdrivenEffHist.png')
+    ptECALdrivenEffCanvas.Print('ptECALdrivenEffHist.pdf')
+    etaECALdrivenEffCanvas = printHist(etaECALdrivenEffStack, etaECALdrivenEffLegend)
+    etaECALdrivenEffCanvas.Print('etaECALdrivenEffHist.png')
+    etaECALdrivenEffCanvas.Print('etaECALdrivenEffHist.pdf')
 
     ptECALdrivenStack, ptECALdrivenLegend, etaECALdrivenStack, etaECALdrivenLegend, ptALLStack, ptALLLegend, etaALLStack, etaALLLegend, ptALLStackEta0, ptALLLegendEta0, ptALLStackEta1, ptALLLegendEta1, ptALLStackEta2, ptALLLegendEta2, ptALLStackEta3, ptALLLegendEta3, ptALLStackEta4, ptALLLegendEta4 = analyzeSeeds(inputChain)
     ptECALdrivenCanvas = printHist(ptECALdrivenStack, ptECALdrivenLegend)
@@ -314,13 +328,4 @@ if __name__ == '__main__':
     ptALLCanvasEta4.Print('ptALLHistEta4.png')
     ptALLCanvasEta4.Print('ptALLHistEta4.pdf')
 
-    ptECALdrivenEffStack, ptECALdrivenEffLegend, etaECALdrivenEffStack, etaECALdrivenEffLegend = analyzeECALdrivenEfficiency(inputChain)
-    ptECALdrivenEffCanvas = printHist(ptECALdrivenEffStack, ptECALdrivenEffLegend)
-    ptECALdrivenEffCanvas.SetLogx(1)
-    ptECALdrivenEffCanvas.Update()
-    ptECALdrivenEffCanvas.Print('ptECALdrivenEffHist.png')
-    ptECALdrivenEffCanvas.Print('ptECALdrivenEffHist.pdf')
-    etaECALdrivenEffCanvas = printHist(etaECALdrivenEffStack, etaECALdrivenEffLegend)
-    etaECALdrivenEffCanvas.Print('etaECALdrivenEffHist.png')
-    etaECALdrivenEffCanvas.Print('etaECALdrivenEffHist.pdf')
     
