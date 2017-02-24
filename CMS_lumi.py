@@ -10,7 +10,8 @@ cmsText     = "CMS";
 cmsTextFont   = 61  
 
 writeExtraText = True
-extraText   = "Preliminary"
+extraText    = "Preliminary"
+extraText2   = "Internal"
 extraTextFont = 52 
 
 lumiTextSize     = 0.6
@@ -155,5 +156,6 @@ def CMS_lumi(pad,  iPeriod,  iPosX ):
         latex.SetTextSize(extraTextSize*t)
         latex.SetTextAlign(align_)
         latex.DrawLatex(posX_, posY_, extraText)      
+        latex.DrawLatex(posX_+0.2, posY_, extraText2)
 
     pad.Update()
